@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener, NgZone } from '@angular/core';
+import { AudioService } from '../services/audio.service';
 
 @Component({
   selector: 'app-balloon-game',
@@ -22,6 +23,7 @@ export class BalloonGameComponent implements OnInit, OnDestroy {
   projectiles: any[] = [];
   balloons: any[] = [];
   private animationFrameId!: number;
+  private backgroundMusic!: HTMLAudioElement;
   
   // Game constants
   private readonly projectileSpeed = -10;
@@ -29,14 +31,30 @@ export class BalloonGameComponent implements OnInit, OnDestroy {
   private readonly canvasWidth = 800;
   private readonly canvasHeight = 600;
 
-  constructor(private ngZone: NgZone) {}
+  constructor(
+    private ngZone: NgZone,
+    private audioService: AudioService
+  ) {}
 
   ngOnInit(): void {
     this.initializeCanvas();
     this.startGameLoop();
+    this.playBackgroundMusic();
+  }
+
+  private playBackgroundMusic(): void {
+    this.backgroundMusic = new Audio('assets/audio/background.mp3');
+    this.backgroundMusic.loop = true;
+    this.backgroundMusic.volume = 0.3;
+    
+    // Start music after user interaction
+    document.addEventListener('click', () => {
+      this.backgroundMusic.play();
+    }, { once: true });
   }
 
   ngOnDestroy(): void {
+    this.backgroundMusic.pause();
     cancelAnimationFrame(this.animationFrameId);
     window.removeEventListener('keydown', this.handleKeyDown);
   }
@@ -85,11 +103,12 @@ export class BalloonGameComponent implements OnInit, OnDestroy {
             p.x + p.width > b.x &&
             p.y < b.y + b.height &&
             p.y + p.height > b.y) {
+          this.audioService.playSound('pop', 1.5);
           this.score += 10;
           this.projectiles.splice(pi, 1);
           this.balloons.splice(bi, 1);
         }
-      });
+      })
     });
 
     // Spawn new balloons
@@ -145,6 +164,7 @@ export class BalloonGameComponent implements OnInit, OnDestroy {
         this.cannon.x = Math.min(this.canvasWidth - this.cannon.width, this.cannon.x + this.cannon.speed);
         break;
       case 'Space':
+        this.audioService.playSound('shoot', 0.5);
         this.projectiles.push({
           x: this.cannon.x + this.cannon.width/2 - 5,
           y: this.cannon.y,
@@ -156,4 +176,6 @@ export class BalloonGameComponent implements OnInit, OnDestroy {
   }
 
   
+
+
 }
